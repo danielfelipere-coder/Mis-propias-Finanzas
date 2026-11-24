@@ -1,0 +1,35 @@
+{
+  "id": "./index.html",
+  "name": "Mis Propias Finanzas",
+  "short_name": "Mis Finanzas",
+  "description": "Control Patrimonial, Flujo de Caja, 5 Pilares, Control Diario y Gastos del Hogar (COP)",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "display_override": ["standalone", "minimal-ui"],
+  "orientation": "any",
+  "background_color": "#000000",
+  "theme_color": "#000000",
+  "lang": "es-CO",
+  "categories": ["finance", "productivity"],
+  "icons": [
+    {
+      "src": "assets/apple-touch-icon.png",
+      "sizes": "180x180",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "assets/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "assets/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

@@ -1,0 +1,1171 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black" />
+  <meta name="apple-mobile-web-app-title" content="Mis Propias Finanzas" />
+  <meta name="theme-color" content="#000000" />
+  <meta name="format-detection" content="telephone=no" />
+  <title>Mis Propias Finanzas</title>
+  <link rel="manifest" href="manifest.json" />
+  <link rel="apple-touch-icon" sizes="180x180" href="assets/apple-touch-icon.png" />
+  <link rel="icon" type="image/png" sizes="192x192" href="assets/icon-192.png" />
+  <link rel="icon" type="image/png" sizes="512x512" href="assets/icon-512.png" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+  <!-- =========================================================================
+       PANTALLA INICIAL DE ACCESO / REGISTRO LOCAL MULTIUSUARIO
+       ========================================================================= -->
+  <section id="authScreen" class="auth-screen">
+    <div class="auth-shell">
+      <div class="auth-hero">
+        <div class="auth-brand">
+          <div class="brand-badge" aria-hidden="true">MF</div>
+          <div>
+            <h1 class="auth-title">Mis Propias Finanzas</h1>
+            <p class="auth-subtitle">Control Patrimonial, Flujo de Caja &amp; Gastos del Hogar · 100% Local y Sin Internet</p>
+          </div>
+        </div>
+        <span id="authProfilesCountPill" class="pill pill-mint num">2 perfiles registrados</span>
+      </div>
+
+      <div class="auth-grid">
+        <!-- Ingreso / Registro por Nombre y Cédula -->
+        <div class="auth-card auth-card-accent">
+          <div>
+            <h2 class="section-title">Ingresar o Crear Perfil</h2>
+            <p class="section-sub">Ingresa con tu Nombre Completo y número de Cédula. Si la cédula ya existe accedes a tus datos; si es nueva se crea tu cuenta al instante.</p>
+          </div>
+
+          <form id="authLoginForm" class="auth-form" novalidate>
+            <div class="field-group">
+              <label for="authFullName" class="field-label">Nombre Completo</label>
+              <input id="authFullName" type="text" class="form-input" placeholder="Ej. Camila Ramírez Gómez" autocomplete="name" required />
+            </div>
+
+            <div class="field-group">
+              <label for="authCedula" class="field-label">Cédula (Documento)</label>
+              <input id="authCedula" type="text" inputmode="numeric" class="form-input mono" placeholder="Ej. 1010101010" autocomplete="off" required />
+            </div>
+
+            <button type="submit" class="btn btn-mint" style="padding: 11px 16px; font-size: 13px;">
+              Ingresar / Registrar Cuenta →
+            </button>
+          </form>
+
+          <p class="auth-hint">
+            Todos los perfiles, variables (12 ingresos y 15 categorías / 102 variables), patrimonio y grupos familiares se guardan de forma privada en <span class="mono">localStorage</span> sin límites de cuentas.
+          </p>
+        </div>
+
+        <!-- Perfiles Registrados (Acceso en 1 clic) -->
+        <div class="auth-card">
+          <div class="chart-head">
+            <div>
+              <h2 class="section-title">Perfiles Registrados</h2>
+              <p class="section-sub">Selecciona una cuenta para entrar directamente</p>
+            </div>
+            <span class="pill pill-cyan">Acceso rápido</span>
+          </div>
+          <div id="authProfilesList" class="profiles-scroll"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- =========================================================================
+       APLICACIÓN PRINCIPAL (OCULTA HASTA INICIAR SESIÓN)
+       ========================================================================= -->
+  <div id="appShell" class="hidden">
+
+    <!-- Encabezado Minimalista OLED (sin selector de meses ni Importar JSON) -->
+    <header class="topbar">
+      <div class="topbar-inner">
+        <div class="brand">
+          <div class="brand-badge" aria-hidden="true">MF</div>
+          <div class="brand-text">
+            <h1 class="brand-title">Mis Propias Finanzas</h1>
+            <div id="brandUserSub" class="brand-sub">Perfil activo · COP</div>
+          </div>
+        </div>
+
+        <div class="nav-dock">
+          <nav class="nav-pills" aria-label="Navegación principal">
+            <button type="button" class="nav-btn active" data-tab="dashboard" id="nav-dashboard">Dashboard &amp; 5 Pilares</button>
+            <button type="button" class="nav-btn" data-tab="editor" id="nav-editor">Editor de Variables</button>
+            <button type="button" class="nav-btn" data-tab="daily" id="nav-daily">Control Diario (Excel)</button>
+            <button type="button" class="nav-btn" data-tab="patrimonio" id="nav-patrimonio">Patrimonio</button>
+            <button type="button" class="nav-btn" data-tab="group" id="nav-group">Hogar / Grupo</button>
+            <button type="button" class="nav-btn" data-tab="simulator" id="nav-simulator">Simulador What-If</button>
+          </nav>
+
+          <button type="button" class="btn btn-mint mobile-dock-excel" id="btnMobileExportExcel" title="Exportar libro Excel (.xlsx)" aria-label="Exportar libro Excel (.xlsx)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            <span>.xlsx</span>
+          </button>
+        </div>
+
+        <div class="header-actions">
+          <div class="profile-switcher" title="Cambiar perfil activo">
+            <span id="activeProfileDot" class="profile-dot" style="background: var(--mint);"></span>
+            <select id="profileSelect" class="profile-select" aria-label="Cambiar perfil activo"></select>
+            <button type="button" class="btn btn-sm btn-purple" id="btnNewProfile" title="Crear nuevo perfil">+ Perfil</button>
+            <button type="button" class="btn btn-sm" id="btnShowLogin" title="Ir a la pantalla de acceso">Acceso</button>
+          </div>
+
+          <button type="button" class="btn btn-mint" id="btnExportExcel" title="Exportar libro Excel (.xlsx) completo">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            <span>Exportar Excel</span>
+          </button>
+
+          <button type="button" class="btn btn-rose" id="btnRestore" title="Restaurar datos base del perfil activo">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
+            <span>Restaurar</span>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <main class="main-wrap">
+
+      <!-- =====================================================================
+           VISTA 1: DASHBOARD & 5 PILARES
+           ===================================================================== -->
+      <section id="view-dashboard" class="view-stack">
+
+        <!-- 4 Tarjetas KPI -->
+        <div class="kpi-grid">
+          <div class="kpi-card">
+            <div class="kpi-strip" style="background: var(--mint);"></div>
+            <div class="kpi-head">
+              <span class="kpi-label">Ingresos Totales</span>
+              <span class="pill pill-mint">100% BASE</span>
+            </div>
+            <div id="kpi-income" class="kpi-value mono">$ 0</div>
+            <div id="kpi-income-sub" class="kpi-foot">0 fuentes activas de 12</div>
+          </div>
+
+          <div class="kpi-card">
+            <div class="kpi-strip" style="background: var(--rose);"></div>
+            <div class="kpi-head">
+              <span class="kpi-label">Total Egresos</span>
+              <span id="kpi-exp-pill" class="pill pill-rose num">0,00% COMPROMETIDO</span>
+            </div>
+            <div id="kpi-expenses" class="kpi-value mono">$ 0</div>
+            <div class="kpi-bar-bg">
+              <div id="kpi-exp-bar" class="kpi-bar-fill" style="width:0%; background: linear-gradient(90deg, var(--mint), var(--amber), var(--rose));"></div>
+            </div>
+          </div>
+
+          <div class="kpi-card">
+            <div class="kpi-strip" style="background: var(--cobalt);"></div>
+            <div class="kpi-head">
+              <span class="kpi-label">Flujo Libre Mensual</span>
+              <span id="kpi-free-pill" class="pill pill-cobalt num">0,00% LIBRE</span>
+            </div>
+            <div id="kpi-free" class="kpi-value mono" style="color: var(--cyan);">$ 0</div>
+            <div id="kpi-free-sub" class="kpi-foot">Disponible mensual para ahorrar o invertir</div>
+          </div>
+
+          <div class="kpi-card">
+            <div class="kpi-strip" style="background: var(--purple);"></div>
+            <div class="kpi-head">
+              <span class="kpi-label">Diagnóstico Global</span>
+              <span id="kpi-score-pill" class="pill pill-purple num">SCORE 0/100</span>
+            </div>
+            <div id="kpi-pillars-count" class="kpi-value num" style="color: var(--purple);">0 / 5 Pilares</div>
+            <div id="kpi-pillars-sub" class="kpi-foot">Pilares cumpliendo meta actual</div>
+          </div>
+        </div>
+
+        <!-- Cuadre Contable 100% -->
+        <div class="card">
+          <div class="cuadre-head">
+            <div>
+              <h2 class="section-title">Cuadre Contable 100% — Flujo de Caja Completo</h2>
+              <p class="section-sub">Distribución exacta de cada peso de tus ingresos entre los 5 Pilares y tu Flujo Libre</p>
+            </div>
+            <div id="cuadreBadge" class="pill pill-mint num">✓ Cuadre exacto: 100,00%</div>
+          </div>
+          <div id="cuadreStackedBar" class="stacked-bar"></div>
+          <div id="cuadreLegendGrid" class="cuadre-legend"></div>
+        </div>
+
+        <!-- Encabezado de Los 5 Pilares Financieros -->
+        <div class="pillars-toolbar">
+          <div>
+            <h2 class="section-title">Los 5 Pilares Financieros (Metas Editables)</h2>
+            <p class="section-sub">Ajusta cada deslizador o porcentaje meta para recalcular diagnóstico, brechas en COP y gráficas al instante</p>
+          </div>
+          <button type="button" class="btn btn-cyan" id="btnRestoreTargets">↺ Restaurar metas Excel</button>
+        </div>
+
+        <!-- Tarjetas de los 5 Pilares -->
+        <div id="pillarsGrid" class="pillars-grid"></div>
+
+        <!-- Gráficas SVG Nativas -->
+        <div class="charts-grid">
+          <div class="card chart-card">
+            <div class="chart-head">
+              <div>
+                <h2 class="section-title">Los 5 Pilares: Real % vs. Meta %</h2>
+                <p class="section-sub">Comparación en vivo de tu ejecución frente a tus metas</p>
+              </div>
+              <div class="chart-legend">
+                <span class="legend-chip" style="color: var(--mint);"><span class="dot" style="background: var(--mint);"></span> Estás bien</span>
+                <span class="legend-chip" style="color: var(--rose);"><span class="dot" style="background: var(--rose);"></span> Debes mejorar</span>
+                <span class="legend-chip" style="color: var(--cyan);"><span class="dot" style="background: var(--cyan);"></span> Meta %</span>
+              </div>
+            </div>
+            <div id="pillarsBarSvg" class="svg-stage"></div>
+          </div>
+
+          <div class="card chart-card">
+            <div class="chart-head">
+              <div>
+                <h2 class="section-title">Distribución de Egresos</h2>
+                <p class="section-sub">Categorías activas ordenadas por peso mensual</p>
+              </div>
+            </div>
+            <div id="donutSvgWrap" class="svg-stage donut-stage"></div>
+            <div id="donutLegendGrid" class="donut-legend-grid"></div>
+          </div>
+        </div>
+
+        <!-- Lectura Ejecutiva -->
+        <div class="card insights-shell">
+          <div class="chart-head">
+            <div>
+              <h2 class="section-title">Lectura Ejecutiva de tu Flujo Actual</h2>
+              <p class="section-sub">Hallazgos recalculados automáticamente a partir de tus datos y metas vigentes</p>
+            </div>
+            <button type="button" class="btn btn-mint" id="btnGoEditor">Editar montos y variables →</button>
+          </div>
+          <div id="insightsGrid" class="insights-grid"></div>
+        </div>
+      </section>
+
+      <!-- =====================================================================
+           VISTA 2: EDITOR DE VARIABLES (12 INGRESOS + 15 CATEGORÍAS / 102 VARS)
+           ===================================================================== -->
+      <section id="view-editor" class="view-stack hidden">
+        <div class="editor-bar">
+          <div class="search-box">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <input id="editorSearchInput" type="text" class="search-input" placeholder="Buscar variable, categoría o nota (ej. Kubo, Aurelio, Quinta, carro, Hipoteca)..." />
+          </div>
+          <div style="display:flex; flex-wrap:wrap; align-items:center; gap:8px;">
+            <button type="button" id="btnFilterActive" class="btn">Todas las variables (102)</button>
+            <button type="button" id="btnExpandAll" class="btn">Expandir todo</button>
+            <button type="button" id="btnCollapseAll" class="btn">Contraer todo</button>
+          </div>
+        </div>
+
+        <div class="accordion-card" style="border-color: rgba(0, 245, 160, 0.32);">
+          <div class="kpi-strip" style="background: var(--mint);"></div>
+          <div class="accordion-head" data-action="toggle-incomes" style="background: rgba(0, 245, 160, 0.04);">
+            <div class="accordion-head-left">
+              <span id="incomesChevron" class="chevron open">▶</span>
+              <span class="dot" style="background: var(--mint);"></span>
+              <span style="font-size:14px; font-weight:800; letter-spacing:0.02em;">FUENTES DE INGRESO MENSUAL</span>
+              <span id="incomesCountPill" class="pill pill-mint">0 activas / 12</span>
+            </div>
+            <div class="accordion-head-right">
+              <span id="editorTotalIncome" class="mono" style="font-size:16px; font-weight:800; color: var(--mint);">$ 0</span>
+              <button type="button" class="btn btn-mint" data-action="add-income">+ Agregar ingreso</button>
+            </div>
+          </div>
+          <div id="incomesListWrap" class="var-table"></div>
+        </div>
+
+        <div id="categoriesListWrap" style="display:flex; flex-direction:column; gap:12px;"></div>
+      </section>
+
+      <!-- =====================================================================
+           VISTA 2B: CONTROL DIARIO (TIPO EXCEL) — HOJA OLED PLANA SIN BURBUJAS
+           ===================================================================== -->
+      <section id="view-daily" class="daily-excel-view hidden">
+
+        <!-- Encabezado Plano Tipo Hoja de Cálculo + Alcance Personal / Hogar -->
+        <div class="excel-band excel-header-band">
+          <div class="excel-header-left">
+            <span class="excel-sheet-tag mono">SHEET · CONTROL DIARIO</span>
+            <div>
+              <h2 class="excel-title">Control Diario (Tipo Excel)</h2>
+              <p id="dailyScopeSubtitle" class="excel-sub">Guardado automático por perfil activo · Edición directa por celda y dictado por voz</p>
+            </div>
+          </div>
+          <div class="excel-header-right">
+            <div id="dailyScopeToggle" class="excel-seg" role="group" aria-label="Alcance de Control Diario">
+              <button type="button" class="excel-seg-btn active" data-daily-scope="personal">Personal</button>
+              <button type="button" class="excel-seg-btn" data-daily-scope="group">Consolidado Familiar</button>
+            </div>
+            <button type="button" class="excel-btn excel-btn-mint" id="btnDailySyncModelTop" title="Aplicar promedios mensuales reales a las variables del modelo">
+              ⟳ Aplicar Promedios al Modelo
+            </button>
+          </div>
+        </div>
+
+        <!-- Franja de 4 Indicadores Planos con Cuadrícula #1F1F28 -->
+        <div class="excel-kpi-strip">
+          <div class="excel-kpi-cell">
+            <span class="excel-kpi-label">Registros Visibles / Total</span>
+            <span id="dailyKpiCount" class="excel-kpi-value mono">0 / 0</span>
+          </div>
+          <div class="excel-kpi-cell">
+            <span class="excel-kpi-label">Total Registrado (COP)</span>
+            <span id="dailyKpiTotal" class="excel-kpi-value mono" style="color: var(--cyan);">$ 0</span>
+          </div>
+          <div class="excel-kpi-cell">
+            <span class="excel-kpi-label">Meses Activos (&gt; $0)</span>
+            <span id="dailyKpiMonths" class="excel-kpi-value mono" style="color: var(--amber);">0 / 12</span>
+          </div>
+          <div class="excel-kpi-cell">
+            <span class="excel-kpi-label">Promedio Mensual Real</span>
+            <span id="dailyKpiRealAvg" class="excel-kpi-value mono" style="color: var(--mint);">$ 0</span>
+          </div>
+        </div>
+
+        <!-- Barra de Fórmulas / Ingreso Rápido y Dictado por Voz (Puntos 1 y 2) -->
+        <div class="excel-band excel-formula-band">
+          <div class="excel-formula-row">
+            <span class="excel-fx-badge mono" aria-hidden="true">fx</span>
+            <input
+              id="dailyQuickInput"
+              type="text"
+              class="excel-formula-input"
+              autocomplete="off"
+              placeholder='Escribe o dicta: "450.000 pesos mercado mes de septiembre" · "gasolina 200 mil octubre" · "borrar fila 3" · "limpiar nota de la fila 2"...'
+              aria-label="Ingreso rápido de gasto o comando de borrado"
+            />
+            <button type="button" class="excel-btn excel-btn-cyan" id="btnDailyQuickSubmit">
+              ↵ Ingresar
+            </button>
+            <button type="button" class="excel-btn excel-btn-mint" id="btnVoiceAdd" title="Dictar gasto o comando con micrófono (Web Speech API)">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+              <span id="btnVoiceAddLabel">Dictar Gasto</span>
+            </button>
+            <button type="button" class="excel-btn excel-btn-rose" id="btnVoiceDelete" title="Ejecutar comando de borrado por voz (fila, casilla o último gasto)">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><line x1="3" y1="3" x2="21" y2="21"/></svg>
+              <span id="btnVoiceDeleteLabel">Comando por Voz: Borrar</span>
+            </button>
+          </div>
+
+          <div class="excel-voice-meta">
+            <div id="dailyVoiceStatus" class="excel-voice-status" role="status" aria-live="polite">
+              Listo · Ejemplos: <span class="mono">"450.000 pesos mercado mes de septiembre"</span>, <span class="mono">"gasolina 200 mil octubre"</span>, <span class="mono">"borrar fila 1"</span>, <span class="mono">"limpiar nota de la fila 2"</span>.
+            </div>
+            <div class="excel-voice-meta-right">
+              <span id="dailyMicPermBadge" class="excel-mic-badge mono">MIC · LISTO</span>
+              <label class="excel-check-inline">
+                <input type="checkbox" id="chkVoiceDeleteConfirm" />
+                <span>Confirmar borrado por voz</span>
+              </label>
+            </div>
+          </div>
+
+          <div id="dailyAudioMeterWrap" class="excel-audio-meter-wrap hidden" aria-live="off">
+            <span id="dailyAudioMeterLabel" class="excel-audio-meter-lbl mono">● GRABANDO 0.0s</span>
+            <div class="excel-audio-meter-track">
+              <div id="dailyAudioMeterFill" class="excel-audio-meter-fill" style="width: 4%;"></div>
+            </div>
+            <button type="button" class="excel-btn excel-btn-cyan" id="btnVoiceStopNow">
+              ⏹ Detener y Transcribir
+            </button>
+          </div>
+
+          <div id="dailyVoiceFallbackActions" class="excel-voice-fallback hidden">
+            <span id="dailyVoiceErrorTag" class="excel-voice-err-tag mono">RESPALDO VOZ</span>
+            <button type="button" class="excel-btn excel-btn-cyan" id="btnVoiceRetryMic">
+              ↻ Reintentar / Solicitar Micrófono
+            </button>
+            <button type="button" class="excel-btn excel-btn-mint" id="btnVoiceMacDictationAdd">
+              🎙 Dictado macOS (Gasto) en fx
+            </button>
+            <button type="button" class="excel-btn excel-btn-rose" id="btnVoiceMacDictationDel">
+              🎙 Dictado macOS (Borrar) en fx
+            </button>
+            <button type="button" class="excel-btn excel-btn-amber hidden" id="btnVoiceOpenSettings">
+              ⚙ Permisos Micrófono macOS
+            </button>
+            <button type="button" class="excel-btn excel-btn-amber hidden" id="btnVoiceOpenSpeechSettings">
+              ⚙ Permisos Voz macOS
+            </button>
+            <button type="button" class="excel-btn excel-btn-ghost hidden" id="btnVoiceCancelDictation">
+              ✕ Salir de Dictado
+            </button>
+          </div>
+        </div>
+
+        <!-- Aviso Plano de Borrado / Sincronización con Opción "Deshacer" (Undo) -->
+        <div id="dailyUndoBanner" class="excel-undo-banner hidden" role="status" aria-live="polite">
+          <div class="excel-undo-text">
+            <span class="excel-undo-tag mono">AVISO</span>
+            <span id="dailyUndoMessage">Acción aplicada.</span>
+          </div>
+          <div class="excel-undo-actions">
+            <button type="button" class="excel-btn excel-btn-amber" id="btnDailyUndoBanner">↺ Deshacer</button>
+            <button type="button" class="excel-btn excel-btn-ghost" id="btnDailyUndoDismiss" title="Cerrar aviso">✕</button>
+          </div>
+        </div>
+
+        <!-- Barra de Filtros, Ordenamiento y Acciones de Tabla (Punto 3) -->
+        <div class="excel-band excel-filter-band">
+          <div class="excel-filter-group">
+            <label class="excel-inline-label" for="dailyFilterMonth">Mes</label>
+            <select id="dailyFilterMonth" class="excel-select" aria-label="Filtrar por mes">
+              <option value="all">Todos (Ene–Dic)</option>
+              <option value="1">Enero</option>
+              <option value="2">Febrero</option>
+              <option value="3">Marzo</option>
+              <option value="4">Abril</option>
+              <option value="5">Mayo</option>
+              <option value="6">Junio</option>
+              <option value="7">Julio</option>
+              <option value="8">Agosto</option>
+              <option value="9">Septiembre</option>
+              <option value="10">Octubre</option>
+              <option value="11">Noviembre</option>
+              <option value="12">Diciembre</option>
+            </select>
+
+            <label class="excel-inline-label" for="dailyFilterCategory">Categoría</label>
+            <select id="dailyFilterCategory" class="excel-select" aria-label="Filtrar por categoría">
+              <option value="all">Todas las 15 categorías</option>
+            </select>
+
+            <input id="dailyFilterSearch" type="search" class="excel-search-input" placeholder="Filtrar concepto o nota..." aria-label="Buscar en gastos diarios" />
+          </div>
+
+          <div class="excel-action-group">
+            <button type="button" class="excel-btn excel-btn-cyan" id="btnDailyAddRow">+ Nueva Fila</button>
+            <button type="button" class="excel-btn" id="btnDailyUndoToolbar" disabled title="Deshacer último borrado o sincronización">↺ Deshacer</button>
+            <button type="button" class="excel-btn excel-btn-ghost" id="btnDailyClearFilters">Limpiar Filtros</button>
+          </div>
+        </div>
+
+        <!-- TABLA PRINCIPAL ESTILO EXCEL (Editable en Línea + Ordenable) -->
+        <div class="excel-sheet-block">
+          <div class="excel-sheet-bar">
+            <span class="excel-sheet-bar-title">1. Registro de Gastos Diarios (Editable en Línea)</span>
+            <div class="excel-sheet-bar-right">
+              <span class="mobile-scroll-hint mono" aria-hidden="true">⇄ Desliza horizontalmente</span>
+              <span id="dailyFilteredSummary" class="mono excel-sheet-bar-meta">0 filas · Subtotal: $ 0</span>
+            </div>
+          </div>
+
+          <div id="dailySortStatus" class="sr-only" role="status"></div>
+
+          <div tabindex="0" role="region" aria-labelledby="dailyTableCaption" class="excel-table-wrap">
+            <table id="dailyExpensesTable" class="excel-table">
+              <caption id="dailyTableCaption" class="sr-only">Registro de gastos diarios editable estilo hoja de cálculo</caption>
+              <thead>
+                <tr>
+                  <th scope="col" data-type="number" class="col-num">
+                    <button type="button" class="excel-sort-btn" commandfor="dailyExpensesTable" command="--sort" data-sort-col="rowNum">
+                      <span>#</span><span class="sort-indicator" aria-hidden="true"></span>
+                    </button>
+                  </th>
+                  <th scope="col" data-type="text" id="dailyOwnerColHead" class="col-owner hidden">
+                    <button type="button" class="excel-sort-btn" commandfor="dailyExpensesTable" command="--sort" data-sort-col="owner">
+                      <span>Integrante</span><span class="sort-indicator" aria-hidden="true"></span>
+                    </button>
+                  </th>
+                  <th scope="col" data-type="number" class="col-date">
+                    <button type="button" class="excel-sort-btn" commandfor="dailyExpensesTable" command="--sort" data-sort-col="date">
+                      <span>Fecha / Mes</span><span class="sort-indicator" aria-hidden="true"></span>
+                    </button>
+                  </th>
+                  <th scope="col" data-type="text" class="col-cat">
+                    <button type="button" class="excel-sort-btn" commandfor="dailyExpensesTable" command="--sort" data-sort-col="category">
+                      <span>Categoría</span><span class="sort-indicator" aria-hidden="true"></span>
+                    </button>
+                  </th>
+                  <th scope="col" data-type="text" class="col-concept">
+                    <button type="button" class="excel-sort-btn" commandfor="dailyExpensesTable" command="--sort" data-sort-col="concept">
+                      <span>Concepto / Detalle</span><span class="sort-indicator" aria-hidden="true"></span>
+                    </button>
+                  </th>
+                  <th scope="col" data-type="number" class="col-amount text-right">
+                    <button type="button" class="excel-sort-btn excel-sort-right" commandfor="dailyExpensesTable" command="--sort" data-sort-col="amount">
+                      <span>Valor ($ COP)</span><span class="sort-indicator" aria-hidden="true"></span>
+                    </button>
+                  </th>
+                  <th scope="col" data-type="text" class="col-note">
+                    <button type="button" class="excel-sort-btn" commandfor="dailyExpensesTable" command="--sort" data-sort-col="note">
+                      <span>Nota</span><span class="sort-indicator" aria-hidden="true"></span>
+                    </button>
+                  </th>
+                  <th scope="col" class="col-act text-right">Acción</th>
+                </tr>
+              </thead>
+              <tbody id="dailyTableBody"></tbody>
+              <tfoot id="dailyTableFoot"></tfoot>
+            </table>
+          </div>
+        </div>
+
+        <!-- TABLA MATRIZ DE CONSOLIDADO Y PROMEDIO MENSUAL REAL (Punto 4) -->
+        <div class="excel-sheet-block">
+          <div class="excel-sheet-bar">
+            <div>
+              <span class="excel-sheet-bar-title">2. Matriz de Consolidado y Promedio Mensual Real (Ene–Dic)</span>
+              <span class="excel-sheet-formula mono">Promedio Mensual Real = Suma / Meses Activos (&gt; $0)</span>
+            </div>
+            <div class="excel-action-group">
+              <span class="mobile-scroll-hint mono" aria-hidden="true">⇄ Desliza Ene–Dic</span>
+              <label class="excel-check-inline">
+                <input type="checkbox" id="chkMatrixOnlyActive" />
+                <span>Solo categorías con gasto</span>
+              </label>
+              <button type="button" class="excel-btn excel-btn-mint" id="btnDailySyncModelMatrix">
+                ⟳ Aplicar Promedios al Modelo
+              </button>
+            </div>
+          </div>
+
+          <div tabindex="0" role="region" aria-labelledby="dailyMatrixCaption" class="excel-table-wrap excel-matrix-wrap">
+            <table id="dailyMatrixTable" class="excel-table excel-matrix-table">
+              <caption id="dailyMatrixCaption" class="sr-only">Matriz consolidada de enero a diciembre por categoría con total, meses activos y promedio mensual real</caption>
+              <thead>
+                <tr>
+                  <th scope="col" class="matrix-sticky-col">Categoría (15 rubros)</th>
+                  <th scope="col" class="text-right">Ene</th>
+                  <th scope="col" class="text-right">Feb</th>
+                  <th scope="col" class="text-right">Mar</th>
+                  <th scope="col" class="text-right">Abr</th>
+                  <th scope="col" class="text-right">May</th>
+                  <th scope="col" class="text-right">Jun</th>
+                  <th scope="col" class="text-right">Jul</th>
+                  <th scope="col" class="text-right">Ago</th>
+                  <th scope="col" class="text-right">Sep</th>
+                  <th scope="col" class="text-right">Oct</th>
+                  <th scope="col" class="text-right">Nov</th>
+                  <th scope="col" class="text-right">Dic</th>
+                  <th scope="col" class="text-right matrix-col-total">Total</th>
+                  <th scope="col" class="text-right matrix-col-active">Meses Activos</th>
+                  <th scope="col" class="text-right matrix-col-avg">Promedio Mensual Real</th>
+                </tr>
+              </thead>
+              <tbody id="dailyMatrixBody"></tbody>
+              <tfoot id="dailyMatrixFoot"></tfoot>
+            </table>
+          </div>
+        </div>
+
+      </section>
+
+      <!-- =====================================================================
+           VISTA 3: MÓDULO DE PATRIMONIO PERSONAL Y FAMILIAR
+           ===================================================================== -->
+      <section id="view-patrimonio" class="view-stack hidden">
+
+        <!-- Barra de contexto Personal vs Consolidado Familiar -->
+        <div class="toolbar-row">
+          <div>
+            <h2 class="section-title">Patrimonio Neto Real</h2>
+            <p id="patScopeSubtitle" class="section-sub">Control exacto de activos, pasivos y patrimonio neto por rubro</p>
+          </div>
+          <div style="display:flex; flex-wrap:wrap; align-items:center; gap:10px;">
+            <div id="patScopeToggle" class="segmented-toggle">
+              <button type="button" class="seg-btn active" data-pat-scope="personal">Personal</button>
+              <button type="button" class="seg-btn" data-pat-scope="group">Consolidado Familiar</button>
+            </div>
+            <button type="button" class="btn btn-mint" id="btnAddPatrimonioRow">+ Agregar rubro</button>
+          </div>
+        </div>
+
+        <!-- 4 KPIs de Patrimonio -->
+        <div class="kpi-grid">
+          <div class="kpi-card">
+            <div class="kpi-strip" style="background: var(--mint);"></div>
+            <div class="kpi-head">
+              <span class="kpi-label">Activos Totales</span>
+              <span id="patKpiRowsPill" class="pill pill-mint num">0 rubros activos</span>
+            </div>
+            <div id="patKpiActivos" class="kpi-value mono">$ 0</div>
+            <div class="kpi-foot">Suma de valor comercial registrado</div>
+          </div>
+
+          <div class="kpi-card">
+            <div class="kpi-strip" style="background: var(--rose);"></div>
+            <div class="kpi-head">
+              <span class="kpi-label">Deudas Totales</span>
+              <span id="patKpiDebtPill" class="pill pill-rose num">0,00% PASIVO</span>
+            </div>
+            <div id="patKpiDeudas" class="kpi-value mono" style="color: var(--rose);">$ 0</div>
+            <div class="kpi-foot">Obligaciones hipotecarias, tarjetas y préstamos</div>
+          </div>
+
+          <div class="kpi-card">
+            <div class="kpi-strip" style="background: var(--cyan);"></div>
+            <div class="kpi-head">
+              <span class="kpi-label">Patrimonio Neto Real</span>
+              <span id="patKpiNetPill" class="pill pill-cyan num">0,00% PROPIO</span>
+            </div>
+            <div id="patKpiNeto" class="kpi-value mono" style="color: var(--cyan);">$ 0</div>
+            <div class="kpi-foot">Activos Totales − Deudas Totales (exacto)</div>
+          </div>
+
+          <div class="kpi-card">
+            <div class="kpi-strip" style="background: var(--purple);"></div>
+            <div class="kpi-head">
+              <span class="kpi-label">Nivel de Endeudamiento</span>
+              <span id="patKpiRatioPill" class="pill pill-purple num">PASIVO / ACTIVO</span>
+            </div>
+            <div id="patKpiRatio" class="kpi-value mono" style="color: var(--purple);">0,00%</div>
+            <div class="kpi-bar-bg">
+              <div id="patKpiRatioBar" class="kpi-bar-fill" style="width:0%; background: linear-gradient(90deg, var(--mint), var(--amber), var(--rose));"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Nota de transparencia contable -->
+        <div class="formula-banner">
+          <span>
+            <strong style="color:var(--cyan);">Fórmula Contable Exacta:</strong>
+            <span class="mono" style="color:#ffffff;">Patrimonio Neto = Valor Comercial − Deuda</span>
+            (sin valor absoluto, para que los saldos negativos y deudas resten correctamente del total).
+          </span>
+          <span id="patFormulaCheck" class="pill pill-mint num">✓ Coherencia 100% verificada</span>
+        </div>
+
+        <!-- Gráficas SVG: Activos vs Pasivos + Composición por Rubro -->
+        <div class="charts-grid-even">
+          <div class="card chart-card">
+            <div class="chart-head">
+              <div>
+                <h2 class="section-title">Balance Patrimonial: Activos vs. Pasivos</h2>
+                <p class="section-sub">Comparación visual de activos, deudas y patrimonio neto real</p>
+              </div>
+              <div class="chart-legend">
+                <span class="legend-chip" style="color: var(--mint);"><span class="dot" style="background: var(--mint);"></span> Activos</span>
+                <span class="legend-chip" style="color: var(--rose);"><span class="dot" style="background: var(--rose);"></span> Pasivos</span>
+                <span class="legend-chip" style="color: var(--cyan);"><span class="dot" style="background: var(--cyan);"></span> Patrimonio Neto</span>
+              </div>
+            </div>
+            <div id="patBalanceSvg" class="svg-stage"></div>
+          </div>
+
+          <div class="card chart-card">
+            <div class="chart-head">
+              <div>
+                <h2 class="section-title">Activos vs. Deudas por Categoría</h2>
+                <p class="section-sub">Distribución patrimonial agrupada por tipo de rubro</p>
+              </div>
+            </div>
+            <div id="patCategoriesSvg" class="svg-stage"></div>
+          </div>
+        </div>
+
+        <!-- Tabla Editable de Rubros de Patrimonio -->
+        <div class="card">
+          <div class="chart-head" style="margin-bottom: 14px;">
+            <div>
+              <h2 id="patTableTitle" class="section-title">Detalle de Rubros Patrimoniales</h2>
+              <p id="patTableHint" class="section-sub">Edita el valor comercial y la deuda de cada rubro; el patrimonio neto se recalcula al instante</p>
+            </div>
+            <div id="patFilterChips" class="filter-chips"></div>
+          </div>
+
+          <div tabindex="0" role="region" aria-labelledby="patTableTitle" class="table-wrapper">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th id="patOwnerColHead" class="hidden">Integrante</th>
+                  <th>Categoría</th>
+                  <th>Descripción del Rubro</th>
+                  <th class="text-right">Valor Comercial (COP)</th>
+                  <th class="text-right">Deuda (COP)</th>
+                  <th class="text-right">Patrimonio Neto</th>
+                  <th class="text-right">% Activos</th>
+                  <th id="patActionsColHead" class="text-right">Acción</th>
+                </tr>
+              </thead>
+              <tbody id="patTableBody"></tbody>
+              <tfoot id="patTableFoot"></tfoot>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- =====================================================================
+           VISTA 4: GRUPOS FAMILIARES ("GASTOS DEL HOGAR")
+           ===================================================================== -->
+      <section id="view-group" class="view-stack hidden">
+
+        <!-- Barra de Gestión de Grupos -->
+        <div class="toolbar-row">
+          <div style="display:flex; flex-wrap:wrap; align-items:center; gap:10px;">
+            <div>
+              <h2 class="section-title">Grupos Familiares · Gastos del Hogar</h2>
+              <p class="section-sub">Consolida ingresos, las 15 categorías de egresos, los 5 Pilares y patrimonio vinculando perfiles por cédula</p>
+            </div>
+          </div>
+
+          <div style="display:flex; flex-wrap:wrap; align-items:center; gap:8px;">
+            <select id="groupSelect" class="form-select" style="width:auto; min-width:210px; padding:7px 11px; font-size:12.5px;" aria-label="Seleccionar grupo familiar"></select>
+            <button type="button" class="btn btn-mint" id="btnNewGroup">+ Nuevo Grupo</button>
+            <button type="button" class="btn btn-cyan" id="btnAddMember">+ Vincular Cédula</button>
+            <button type="button" class="btn btn-rose" id="btnDeleteGroup" title="Eliminar grupo actual">Eliminar</button>
+          </div>
+        </div>
+
+        <!-- Estado vacío cuando no hay grupos -->
+        <div id="groupEmptyState" class="card hidden" style="text-align:center; padding:42px 20px;">
+          <h3 class="section-title">Aún no tienes un Grupo Familiar activo</h3>
+          <p class="section-sub" style="margin:8px auto 18px; max-width:480px;">Crea un grupo (ej. "Hogar Daniel y Daniela") y vincula 2 o más perfiles por número de cédula para ver el consolidado completo del hogar.</p>
+          <button type="button" class="btn btn-mint" id="btnNewGroupEmpty">+ Crear Primer Grupo Familiar</button>
+        </div>
+
+        <!-- Contenido Consolidado del Grupo -->
+        <div id="groupContentWrap" class="view-stack">
+
+          <!-- Integrantes Vinculados -->
+          <div class="card">
+            <div class="chart-head" style="margin-bottom:12px;">
+              <div>
+                <h3 id="groupActiveTitle" class="section-title">Hogar Daniel y Daniela</h3>
+                <p id="groupActiveSub" class="section-sub">Integrantes vinculados por cédula y aporte porcentual al hogar</p>
+              </div>
+              <span id="groupMembersBadge" class="pill pill-cyan num">2 integrantes</span>
+            </div>
+
+            <div id="groupMemberTags" class="member-tag-list" style="margin-bottom:16px;"></div>
+
+            <!-- Barra visual de aporte porcentual a ingresos -->
+            <div style="margin-bottom:14px;">
+              <div style="display:flex; justify-content:space-between; font-size:11.5px; color:var(--text-secondary); margin-bottom:6px;">
+                <span style="font-weight:700;">Distribución de Aporte a Ingresos del Hogar</span>
+                <span id="groupIncomeTotalMini" class="mono" style="color:#fff; font-weight:700;">$ 0</span>
+              </div>
+              <div id="groupContribBar" class="stacked-bar"></div>
+            </div>
+
+            <!-- Tarjetas de aporte por integrante -->
+            <div id="groupMembersGrid" class="members-grid"></div>
+          </div>
+
+          <!-- 4 KPIs Consolidados del Hogar -->
+          <div class="kpi-grid">
+            <div class="kpi-card">
+              <div class="kpi-strip" style="background: var(--mint);"></div>
+              <div class="kpi-head">
+                <span class="kpi-label">Ingresos del Hogar</span>
+                <span class="pill pill-mint">100% HOGAR</span>
+              </div>
+              <div id="grp-kpi-income" class="kpi-value mono">$ 0</div>
+              <div id="grp-kpi-income-sub" class="kpi-foot">Suma de todos los integrantes</div>
+            </div>
+
+            <div class="kpi-card">
+              <div class="kpi-strip" style="background: var(--rose);"></div>
+              <div class="kpi-head">
+                <span class="kpi-label">Egresos del Hogar</span>
+                <span id="grp-kpi-exp-pill" class="pill pill-rose num">0,00% COMPROMETIDO</span>
+              </div>
+              <div id="grp-kpi-expenses" class="kpi-value mono">$ 0</div>
+              <div class="kpi-bar-bg">
+                <div id="grp-kpi-exp-bar" class="kpi-bar-fill" style="width:0%; background: linear-gradient(90deg, var(--mint), var(--amber), var(--rose));"></div>
+              </div>
+            </div>
+
+            <div class="kpi-card">
+              <div class="kpi-strip" style="background: var(--cobalt);"></div>
+              <div class="kpi-head">
+                <span class="kpi-label">Flujo Libre del Hogar</span>
+                <span id="grp-kpi-free-pill" class="pill pill-cobalt num">0,00% LIBRE</span>
+              </div>
+              <div id="grp-kpi-free" class="kpi-value mono" style="color: var(--cyan);">$ 0</div>
+              <div id="grp-kpi-free-sub" class="kpi-foot">Excedente consolidado mensual</div>
+            </div>
+
+            <div class="kpi-card">
+              <div class="kpi-strip" style="background: var(--purple);"></div>
+              <div class="kpi-head">
+                <span class="kpi-label">Diagnóstico del Hogar</span>
+                <span id="grp-kpi-score-pill" class="pill pill-purple num">SCORE 0/100</span>
+              </div>
+              <div id="grp-kpi-pillars-count" class="kpi-value num" style="color: var(--purple);">0 / 5 Pilares</div>
+              <div id="grp-kpi-pillars-sub" class="kpi-foot">Pilares del hogar cumpliendo meta</div>
+            </div>
+          </div>
+
+          <!-- Cuadre Contable 100% del Hogar -->
+          <div class="card">
+            <div class="cuadre-head">
+              <div>
+                <h2 class="section-title">Cuadre Contable 100% — Flujo Consolidado del Hogar</h2>
+                <p class="section-sub">Distribución exacta de cada peso del hogar entre los 5 Pilares y el Flujo Libre</p>
+              </div>
+              <div id="grpCuadreBadge" class="pill pill-mint num">✓ Cuadre exacto: 100,00%</div>
+            </div>
+            <div id="grpCuadreBar" class="stacked-bar"></div>
+            <div id="grpCuadreLegend" class="cuadre-legend"></div>
+          </div>
+
+          <!-- 5 Pilares del Hogar -->
+          <div class="pillars-toolbar">
+            <div>
+              <h2 class="section-title">Los 5 Pilares Financieros del Hogar</h2>
+              <p class="section-sub">Recalculados sobre el total de ingresos y egresos del grupo familiar</p>
+            </div>
+            <button type="button" class="btn btn-cyan" id="btnRestoreGroupTargets">↺ Restaurar metas Excel</button>
+          </div>
+          <div id="groupPillarsGrid" class="pillars-grid"></div>
+
+          <!-- Gráficas SVG del Hogar -->
+          <div class="charts-grid">
+            <div class="card chart-card">
+              <div class="chart-head">
+                <div>
+                  <h2 class="section-title">5 Pilares del Hogar: Real % vs. Meta %</h2>
+                  <p class="section-sub">Ejecución consolidada frente a las metas familiares</p>
+                </div>
+                <div class="chart-legend">
+                  <span class="legend-chip" style="color: var(--mint);"><span class="dot" style="background: var(--mint);"></span> Estás bien</span>
+                  <span class="legend-chip" style="color: var(--rose);"><span class="dot" style="background: var(--rose);"></span> Debes mejorar</span>
+                  <span class="legend-chip" style="color: var(--cyan);"><span class="dot" style="background: var(--cyan);"></span> Meta %</span>
+                </div>
+              </div>
+              <div id="groupPillarsBarSvg" class="svg-stage"></div>
+            </div>
+
+            <div class="card chart-card">
+              <div class="chart-head">
+                <div>
+                  <h2 class="section-title">Patrimonio Consolidado del Hogar</h2>
+                  <p id="groupPatSub" class="section-sub">Suma de activos, deudas y patrimonio neto real del grupo</p>
+                </div>
+                <span id="groupPatNetPill" class="pill pill-cyan mono">$ 0</span>
+              </div>
+              <div id="groupPatBalanceSvg" class="svg-stage"></div>
+            </div>
+          </div>
+
+          <!-- Tabla Consolidada de las 15 Categorías por Integrante -->
+          <div class="card">
+            <div class="chart-head" style="margin-bottom:14px;">
+              <div>
+                <h2 id="groupCatTableTitle" class="section-title">Desglose Consolidado por las 15 Categorías</h2>
+                <p class="section-sub">Comparación exacta del gasto mensual por integrante, total del hogar y porcentaje sobre ingresos consolidados</p>
+              </div>
+            </div>
+
+            <div tabindex="0" role="region" aria-labelledby="groupCatTableTitle" class="table-wrapper">
+              <table class="data-table">
+                <thead id="groupCatTableHead"></thead>
+                <tbody id="groupCatTableBody"></tbody>
+                <tfoot id="groupCatTableFoot"></tfoot>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- =====================================================================
+           VISTA 5: SIMULADOR WHAT-IF & PROYECCIÓN PATRIMONIAL
+           ===================================================================== -->
+      <section id="view-simulator" class="view-stack hidden">
+        <div class="sim-layout">
+          <div class="card">
+            <div class="chart-head" style="margin-bottom:8px;">
+              <div>
+                <h2 class="section-title">Parámetros What-If</h2>
+                <p class="section-sub">Edita montos hasta $ 10.000.000/mes y proyecta tu patrimonio real</p>
+              </div>
+              <button type="button" class="btn btn-cyan" id="btnResetSim">Reiniciar</button>
+            </div>
+
+            <div class="sim-slider-block">
+              <div class="sim-slider-top">
+                <span>Redirigir Flujo Libre a Ahorro/Inversión</span>
+                <span id="simValFree" class="mono" style="color: var(--mint);">100%</span>
+              </div>
+              <input id="simFreePct" type="range" min="0" max="100" step="5" value="100" style="--thumb-color: var(--mint);" aria-label="Porcentaje flujo libre a ahorro" />
+              <div id="simHintFree" class="section-sub">+$ 0 / mes adicionales a tu ahorro</div>
+            </div>
+
+            <div class="sim-slider-block">
+              <div class="sim-slider-top">
+                <span>Reducción mensual en Deudas / Gastos</span>
+                <div class="money-shell">
+                  <span class="money-prefix">$</span>
+                  <input id="simCutAmtNum" type="number" min="0" max="10000000" step="50000" value="300000" class="sim-num-input" aria-label="Monto exacto reducción mensual deudas y gastos" />
+                </div>
+              </div>
+              <input id="simCutAmt" type="range" min="0" max="10000000" step="50000" value="300000" style="--thumb-color: var(--cyan);" aria-label="Reducción mensual deudas y gastos" />
+              <div id="simHintCut" class="section-sub">Hasta $ 10.000.000/mes · Reduce primero cuotas de deuda y luego gastos personales</div>
+            </div>
+
+            <div class="sim-slider-block">
+              <div class="sim-slider-top">
+                <span>Aporte / Ingreso Extra Mensual</span>
+                <div class="money-shell">
+                  <span class="money-prefix">$</span>
+                  <input id="simExtraMonthlyNum" type="number" min="0" max="10000000" step="50000" value="0" class="sim-num-input" aria-label="Monto exacto aporte o ingreso extra mensual" />
+                </div>
+              </div>
+              <input id="simExtraMonthly" type="range" min="0" max="10000000" step="50000" value="0" style="--thumb-color: var(--mint);" aria-label="Aporte o ingreso extra mensual" />
+              <div id="simHintExtra" class="section-sub">Hasta $ 10.000.000/mes · Simula ingresos adicionales o inversión mensual extra</div>
+            </div>
+
+            <div class="sim-slider-block">
+              <div class="sim-slider-top">
+                <span>Capital Inicial a Invertir (Hoy)</span>
+                <div class="money-shell">
+                  <span class="money-prefix">$</span>
+                  <input id="simInitCapNum" type="number" min="0" max="1000000000" step="500000" value="0" class="sim-num-input" aria-label="Capital inicial a invertir" />
+                </div>
+              </div>
+              <input id="simInitCap" type="range" min="0" max="200000000" step="1000000" value="0" style="--thumb-color: var(--cobalt);" aria-label="Deslizador capital inicial" />
+              <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; flex-wrap:wrap;">
+                <span id="simHintInit" class="section-sub">Base inicial invertida desde el mes 0</span>
+                <button type="button" class="btn btn-sm btn-cyan" id="btnUseLiquidPat">Cargar Efectivo/Inv.</button>
+              </div>
+            </div>
+
+            <div class="sim-slider-block">
+              <div class="sim-slider-top">
+                <span>Aportes Extra Anuales (Primas / Bonos)</span>
+                <div class="money-shell">
+                  <span class="money-prefix">$</span>
+                  <input id="simAnnualBonusNum" type="number" min="0" max="100000000" step="250000" value="0" class="sim-num-input" aria-label="Aportes extraordinarios anuales" />
+                </div>
+              </div>
+              <input id="simAnnualBonus" type="range" min="0" max="20000000" step="250000" value="0" style="--thumb-color: var(--cyan);" aria-label="Deslizador aportes extraordinarios anuales" />
+              <div class="section-sub">Se inyecta 50% en junio y 50% en diciembre (primas / bonificaciones)</div>
+            </div>
+
+            <div class="sim-slider-block">
+              <div class="sim-slider-top">
+                <span>Incremento Anual del Aporte</span>
+                <span id="simValEscalation" class="mono" style="color: var(--cobalt);">0% / año</span>
+              </div>
+              <input id="simEscalation" type="range" min="0" max="15" step="1" value="0" style="--thumb-color: var(--cobalt);" aria-label="Incremento anual del aporte mensual" />
+              <div class="section-sub">Aumenta tu cuota de ahorro cada año al ritmo de tu crecimiento salarial</div>
+            </div>
+
+            <div class="sim-slider-block">
+              <div class="sim-slider-top">
+                <span>Rendimiento Anual Esperado (E.A.)</span>
+                <span id="simValRate" class="mono" style="color: var(--purple);">11,0% E.A.</span>
+              </div>
+              <input id="simRateEA" type="range" min="0" max="25" step="0.5" value="11" style="--thumb-color: var(--purple);" aria-label="Rendimiento anual esperado" />
+              <div class="section-sub">Interés compuesto mensual equivalente (Kubo / CDT / Renta Fija / ETFs)</div>
+            </div>
+
+            <div class="sim-slider-block">
+              <div class="sim-slider-top">
+                <span>Inflación Anual Estimada (IPC)</span>
+                <span id="simValInflation" class="mono" style="color: var(--amber);">5,0% IPC</span>
+              </div>
+              <input id="simInflation" type="range" min="0" max="15" step="0.5" value="5" style="--thumb-color: var(--amber);" aria-label="Inflación anual estimada" />
+              <div class="section-sub">Calcula tu poder adquisitivo real en pesos de hoy</div>
+            </div>
+
+            <div class="sim-slider-block">
+              <div class="sim-slider-top">
+                <span>Horizonte de Proyección</span>
+                <span id="simValYears" class="mono" style="color: var(--amber);">5 años</span>
+              </div>
+              <input id="simYears" type="range" min="1" max="20" step="1" value="5" style="--thumb-color: var(--amber);" aria-label="Horizonte en años" />
+              <div class="section-sub">Compara el patrimonio acumulado entre 1 y 20 años</div>
+            </div>
+          </div>
+
+          <div style="display:flex; flex-direction:column; gap:18px; min-width:0;">
+            <div class="sim-kpis">
+              <div class="sim-kpi-card" style="border-color: rgba(0, 245, 160, 0.25);">
+                <div class="kpi-head">
+                  <div class="kpi-label">Nuevo Ahorro Mensual</div>
+                  <button type="button" id="btnSimMonthlyAuto" class="pill pill-mint hidden" style="cursor:pointer;" title="Volver al cálculo automático">Manual · Auto</button>
+                </div>
+                <div class="sim-kpi-edit-row">
+                  <span class="sim-kpi-currency mono">$</span>
+                  <input id="simKpiMonthlyInput" type="text" inputmode="decimal" value="0" class="sim-kpi-input mono" aria-label="Nuevo ahorro mensual editable entre 0 y 10 millones" />
+                </div>
+                <input id="simKpiMonthlyRange" type="range" min="0" max="10000000" step="50000" value="0" style="--thumb-color: var(--mint);" aria-label="Deslizador nuevo ahorro mensual de 0 a 10 millones" />
+                <div style="display:flex; justify-content:space-between; align-items:center; gap:8px;">
+                  <div id="simKpiMonthlySub" class="kpi-foot num">0,00% de tus ingresos</div>
+                  <span class="mono" style="font-size:10.5px; color:var(--text-muted);">$ 0 – $ 10M</span>
+                </div>
+              </div>
+
+              <div class="sim-kpi-card">
+                <div class="kpi-label">Proyección Simulada a 1 Año</div>
+                <div id="simKpi1Y" class="sim-kpi-val mono" style="color: var(--cyan);">$ 0</div>
+                <div id="simKpi1YSub" class="kpi-foot num">vs Actual: $ 0</div>
+              </div>
+
+              <div class="sim-kpi-card" style="border-color: rgba(0, 245, 160, 0.32);">
+                <div id="simKpiNYLabel" class="kpi-label">Patrimonio Simulado a 5 Años</div>
+                <div id="simKpiNY" class="sim-kpi-val mono" style="color: var(--mint);">$ 0</div>
+                <div id="simKpiNYSub" class="kpi-foot num">Capital + Rendimientos</div>
+                <div id="simKpiNYReal" class="kpi-foot num" style="color: var(--amber); font-weight: 700;">Poder adquisitivo hoy: $ 0</div>
+              </div>
+
+              <div class="sim-kpi-card" style="border-color: rgba(168, 85, 247, 0.32);">
+                <div id="simKpiPassiveLabel" class="kpi-label">Renta Pasiva Mensual (Año 5)</div>
+                <div id="simKpiPassive" class="sim-kpi-val mono" style="color: var(--purple);">$ 0</div>
+                <div id="simKpiPassiveSub" class="kpi-foot num">Rendimiento mensual estimado</div>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="chart-head" style="margin-bottom:14px;">
+                <div>
+                  <h2 class="section-title">Proyección Patrimonial: Actual vs. Simulado</h2>
+                  <p id="simChartSub" class="section-sub">Evolución anual con interés compuesto mensual</p>
+                </div>
+                <div class="chart-legend">
+                  <span class="legend-chip" style="color: var(--mint);"><span class="dot" style="background: var(--mint);"></span> Simulado Nominal</span>
+                  <span class="legend-chip" style="color: var(--amber);"><span class="dot" style="background: var(--amber);"></span> Real (Hoy / IPC)</span>
+                  <span class="legend-chip" style="color: var(--cyan);"><span class="dot" style="background: var(--cyan);"></span> Actual</span>
+                </div>
+              </div>
+              <div id="simChartSvg" class="svg-stage"></div>
+            </div>
+
+            <div class="card">
+              <h3 id="simTableTitle" class="section-title" style="margin-bottom:12px;">Impacto en los 5 Pilares (Actual vs. Simulado)</h3>
+              <div tabindex="0" role="region" aria-labelledby="simTableTitle" class="table-wrapper">
+                <table class="data-table">
+                  <thead>
+                    <tr>
+                      <th>Pilar</th>
+                      <th>Meta</th>
+                      <th>Actual %</th>
+                      <th>Simulado %</th>
+                      <th class="text-right">Nuevo Estado</th>
+                    </tr>
+                  </thead>
+                  <tbody id="simPillarsTableBody"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- Tooltip Flotante Compartido -->
+  <div id="floating-tooltip" role="tooltip" aria-hidden="true"></div>
+
+  <!-- Notificaciones Toast -->
+  <div id="toastStack" class="toast-stack" aria-live="polite"></div>
+
+  <!-- =========================================================================
+       DIÁLOGOS NATIVOS (<dialog closedby="any">) — ACCESIBLES Y TOP-LAYER
+       ========================================================================= -->
+
+  <!-- Dialog: Crear Nuevo Perfil -->
+  <dialog id="dialogNewProfile" class="app-dialog" closedby="any" aria-labelledby="dlgNewProfileTitle">
+    <form id="formNewProfile" class="dialog-body" method="dialog">
+      <h3 id="dlgNewProfileTitle" class="section-title">Crear Nuevo Perfil Local</h3>
+      <p class="section-sub">Se creará una cuenta independiente con las 15 categorías (102 variables), 12 ingresos y plantilla de patrimonio.</p>
+      <div class="field-group">
+        <label for="inputNewProfileName" class="field-label">Nombre Completo</label>
+        <input id="inputNewProfileName" type="text" class="form-input" placeholder="Ej. Laura Martínez" autofocus />
+      </div>
+      <div class="field-group">
+        <label for="inputNewProfileCedula" class="field-label">Cédula</label>
+        <input id="inputNewProfileCedula" type="text" inputmode="numeric" class="form-input mono" placeholder="Ej. 1032456789" />
+      </div>
+      <div class="dialog-foot">
+        <button type="submit" value="cancel" class="btn">Cancelar</button>
+        <button type="submit" value="confirm" class="btn btn-mint">Crear y Activar</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- Dialog: Crear Nuevo Grupo Familiar -->
+  <dialog id="dialogNewGroup" class="app-dialog" closedby="any" aria-labelledby="dlgNewGroupTitle">
+    <form id="formNewGroup" class="dialog-body" method="dialog">
+      <h3 id="dlgNewGroupTitle" class="section-title">Crear Grupo Familiar ("Gastos del Hogar")</h3>
+      <p class="section-sub">Asigna un nombre al hogar y selecciona o escribe las cédulas de 2 o más perfiles registrados.</p>
+      <div class="field-group">
+        <label for="inputNewGroupName" class="field-label">Nombre del Grupo</label>
+        <input id="inputNewGroupName" type="text" class="form-input" placeholder="Ej. Hogar Daniel y Daniela" autofocus />
+      </div>
+      <div class="field-group">
+        <span class="field-label">Seleccionar perfiles registrados (mínimo 2)</span>
+        <div id="newGroupMembersChecklist" class="checklist-members"></div>
+      </div>
+      <div class="field-group">
+        <label for="inputNewGroupExtraCedulas" class="field-label">O vincular cédulas adicionales (separadas por coma)</label>
+        <input id="inputNewGroupExtraCedulas" type="text" class="form-input mono" placeholder="Ej. 1010101010, 2020202020" />
+      </div>
+      <div class="dialog-foot">
+        <button type="submit" value="cancel" class="btn">Cancelar</button>
+        <button type="submit" value="confirm" class="btn btn-mint">Crear Grupo</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- Dialog: Vincular Integrante por Cédula -->
+  <dialog id="dialogAddMember" class="app-dialog" closedby="any" aria-labelledby="dlgAddMemberTitle">
+    <form id="formAddMember" class="dialog-body" method="dialog">
+      <h3 id="dlgAddMemberTitle" class="section-title">Vincular Integrante por Cédula</h3>
+      <p class="section-sub">Ingresa el número de cédula de un perfil registrado para sumarlo al grupo familiar activo.</p>
+      <div class="field-group">
+        <label for="inputMemberCedula" class="field-label">Cédula del Integrante</label>
+        <input id="inputMemberCedula" type="text" inputmode="numeric" class="form-input mono" list="registeredCedulasList" placeholder="Ej. 2020202020" autofocus />
+        <datalist id="registeredCedulasList"></datalist>
+      </div>
+      <div class="dialog-foot">
+        <button type="submit" value="cancel" class="btn">Cancelar</button>
+        <button type="submit" value="confirm" class="btn btn-cyan">Vincular al Grupo</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- Dialog: Restaurar Datos del Perfil Activo -->
+  <dialog id="dialogRestore" class="app-dialog" closedby="any" aria-labelledby="dlgRestoreTitle">
+    <form id="formRestore" class="dialog-body" method="dialog">
+      <h3 id="dlgRestoreTitle" class="section-title" style="color: var(--rose);">Restaurar Datos Base del Perfil</h3>
+      <p id="dlgRestoreText" class="section-sub">Se restablecerán los datos del perfil activo a su modelo base auditado.</p>
+      <div class="dialog-foot">
+        <button type="submit" value="cancel" class="btn" autofocus>Cancelar</button>
+        <button type="submit" value="confirm" class="btn btn-rose">Sí, restaurar</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- Dialog: Aplicar Promedios Mensuales Reales al Modelo Principal (Punto 5) -->
+  <dialog id="dialogDailySync" class="app-dialog app-dialog-wide" closedby="any" aria-labelledby="dlgDailySyncTitle">
+    <form id="formDailySync" class="dialog-body" method="dialog">
+      <h3 id="dlgDailySyncTitle" class="section-title" style="color: var(--mint);">Aplicar Promedios Mensuales al Modelo</h3>
+      <p id="dlgDailySyncSub" class="section-sub">Selecciona a qué variable de la tabla principal deseas asignar cada Promedio Mensual Real y recalcula los 5 Pilares y gráficas.</p>
+      <div id="dailySyncList" class="excel-sync-list"></div>
+      <div class="dialog-foot">
+        <button type="submit" value="cancel" class="btn">Cancelar</button>
+        <button type="submit" value="confirm" class="btn btn-mint">Aplicar y Recalcular 5 Pilares</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- Dialog: Confirmación Rápida de Borrado por Voz (Punto 2) -->
+  <dialog id="dialogVoiceDeleteConfirm" class="app-dialog" closedby="any" aria-labelledby="dlgVoiceDelTitle">
+    <form id="formVoiceDeleteConfirm" class="dialog-body" method="dialog">
+      <h3 id="dlgVoiceDelTitle" class="section-title" style="color: var(--rose);">Confirmar Borrado por Voz</h3>
+      <p id="dlgVoiceDelText" class="section-sub">¿Confirmas esta operación de borrado?</p>
+      <div class="dialog-foot">
+        <button type="submit" value="cancel" class="btn" autofocus>Cancelar</button>
+        <button type="submit" value="confirm" class="btn btn-rose">Sí, ejecutar borrado</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- Librería local SheetJS (sin internet) + Módulos de la App -->
+  <script src="xlsx.full.min.js"></script>
+  <script src="data.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
